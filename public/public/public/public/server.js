@@ -7,40 +7,55 @@ import fs from "fs";
 const app = express();
 app.use(cors());
 
-// foto uploaden
 const upload = multer({ dest: "uploads/" });
 
-// OpenAI client
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// AI endpoint
 app.post("/api/analyze", upload.single("photo"), async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ error: "No image provided" });
+    if (!req.file) {
+      return res.status(400).json({ error: "No image uploaded" });
+    }
 
-    const imgBuffer = fs.readFileSync(req.file.path);
+    // lees afbeelding als buffer
+    const imageBuffer = fs.readFileSync(req.file.path);
+    const base64Image = imageBuffer.toString("base64");
 
+    // stuur naar vision model
     const result = await client.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4o", // Vision werkt PERFECT op dit model
       messages: [
         {
           role: "user",
           content: [
-            { type: "input_image", image_url: req.file.path },
+            {
+              type: "input_image",
+              image_url: `data:image/jpeg;base64,${base64Image}`
+            },
             {
               type: "text",
-              text: "Identify the object and translate it into Spanish. Return JSON with label, translation, description."
+              text: `Identify the main object. Return JSON only:
+
+{
+  "label": "object label",
+  "translation": "Spanish translation",
+  "description": "very short description"
+}`
             }
           ]
         }
       ]
     });
 
+    // parse AI output
     const json = JSON.parse(result.choices[0].message.content);
-    res.json({ labels: [json] });
+
+    res.json({
+      labels: [json]
+    });
 
   } catch (err) {
-    console.error(err);
+    console.error("SERVER ERROR:", err);
     res.status(500).json({ error: err.toString() });
   }
 });
