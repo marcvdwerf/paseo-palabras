@@ -1,0 +1,11 @@
+{
+  "name": "paseo-palabras",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "express": "latest",
+    "multer": "latest",
+    "cors": "latest",
+    "openai": "latest"
+  }
+}
